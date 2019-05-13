@@ -12,6 +12,7 @@ const app = express();
 
 app.use(bodyParser.json());
 
+
 app.use(
   "/graphql",
   graphqlHttp({
@@ -22,12 +23,14 @@ app.use(
         description: String!
         price: Float!
         date: String!
+        creator: User!
       }
 
       type User {
         _id: ID!
         email: String!
         password: String
+        createdEvents: [Event!]
       }
 
       input EventInput {
@@ -59,11 +62,17 @@ app.use(
     rootValue: {
       events: () => {
         return Event.find()
+          .populate("creator")
           .then(events => {
             return events.map(event => {
-              // return { ...event._doc, _id: event._doc._id.toString() };
-              // return { ...event._doc, _id: event.id };
-              return { ...event._doc };
+              return { 
+                ...event._doc, 
+                _id: event.id,
+                creator: {
+                  ...event._doc.creator._doc,
+                  _id: event._doc.creator.id
+                }
+               };
             });
           })
           .catch(err => {
@@ -76,19 +85,19 @@ app.use(
           description: args.eventInput.description,
           price: +args.eventInput.price,
           date: new Date(args.eventInput.date),
-          creator: '5cd2772b2b458c525a8c960c'
+          creator: "5cd2772b2b458c525a8c960c"
         });
 
         let createdEvent;
         return event
           .save()
           .then(result => {
-            createdEvent = { ...result._doc, _id: result._doc._id.toString() }
-            return User.findById('5cd2772b2b458c525a8c960c')
+            createdEvent = { ...result._doc, _id: result._doc._id.toString() };
+            return User.findById("5cd2772b2b458c525a8c960c");
           })
           .then(user => {
-            if(!user) {
-              throw new Error('User not found.');
+            if (!user) {
+              throw new Error("User not found.");
             }
             user.createdEvents.push(event);
             return user.save();
