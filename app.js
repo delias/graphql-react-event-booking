@@ -12,14 +12,34 @@ const app = express();
 
 app.use(bodyParser.json());
 
+const events = eventId => {
+  return Event.find({ _id: { $in: eventIds } })
+    .then(events => {
+      return events.map(event => {
+        return {
+          ...event._doc,
+          _id: event.id,
+          creator: user.bind(this, event.creator)
+        };
+      });
+    })
+    .catch(err => {
+      throw err;
+    });
+};
+
 const user = userId => {
   return User.findById(userId)
-  .then( user => {
-    return { ...user._doc, _id: user.id};
-  })
-  .catch(err => {
-    throw err;
-  });
+    .then(user => {
+      return {
+        ...user._doc,
+        _id: user.id,
+        createdEvents: events.bind(this, user._doc.createdEvents)
+      };
+    })
+    .catch(err => {
+      throw err;
+    });
 };
 
 app.use(
@@ -73,11 +93,11 @@ app.use(
         return Event.find()
           .then(events => {
             return events.map(event => {
-              return { 
-                ...event._doc, 
+              return {
+                ...event._doc,
                 _id: event.id,
                 creator: user.bind(this, event._doc.creator)
-               };
+              };
             });
           })
           .catch(err => {
@@ -97,7 +117,11 @@ app.use(
         return event
           .save()
           .then(result => {
-            createdEvent = { ...result._doc, _id: result._doc._id.toString() };
+            createdEvent = {
+              ...result._doc,
+              _id: result._doc._id.toString(),
+              creator: user.bind(this, result._doc.creator)
+            };
             return User.findById("5cd2772b2b458c525a8c960c");
           })
           .then(user => {
